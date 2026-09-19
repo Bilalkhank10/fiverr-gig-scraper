@@ -1,0 +1,76 @@
+{
+  "actorSpecification": 1,
+  "title": "Fiverr Gigs Data",
+  "description": "Scraped Fiverr gig data: title, seller, pricing, ratings, performance metrics and gallery images.",
+  "views": {
+    "overview": {
+      "title": "📊 Gigs Overview",
+      "transformation": {
+        "fields": ["id", "title", "url", "thumbnail", "seller_username", "seller_displayName", "seller_country", "seller_level", "seller_rating_score", "seller_rating_count", "starting_price", "currency", "delivery_days", "position", "is_promoted"]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "id": { "label": "🆔 Gig ID", "format": "number" },
+          "title": { "label": "📝 Gig Title" },
+          "url": { "label": "🔗 Gig URL", "format": "link" },
+          "thumbnail": { "label": "🖼️ Thumbnail", "format": "image" },
+          "seller_username": { "label": "👤 Seller Username" },
+          "seller_displayName": { "label": "👨‍💼 Seller Name" },
+          "seller_country": { "label": "🌍 Country" },
+          "seller_level": { "label": "⭐ Seller Level" },
+          "seller_rating_score": { "label": "⭐ Rating", "format": "number" },
+          "seller_rating_count": { "label": "📊 Reviews", "format": "number" },
+          "starting_price": { "label": "💰 Price", "format": "number" },
+          "currency": { "label": "💵 Currency" },
+          "delivery_days": { "label": "⏱️ Delivery (days)", "format": "number" },
+          "position": { "label": "📍 Position", "format": "number" },
+          "is_promoted": { "label": "📢 Ad", "format": "boolean" }
+        }
+      }
+    },
+    "detailed": {
+      "title": "📋 Detailed View",
+      "transformation": {
+        "fields": ["id", "title", "url", "slug", "thumbnail", "seller_id", "seller_username", "seller_displayName", "seller_country", "seller_isOnline", "seller_isPro", "seller_level", "seller_languages", "seller_rating_score", "seller_rating_count", "starting_price", "currency", "delivery_days", "total_packages", "position", "listing_type", "is_promoted", "isFiverrChoice", "isFeatured", "buying_rating", "buying_review_count", "category_id", "subcategory_id", "offerConsultation", "hasVideoIntro", "hasWorkSamples", "scraped_at"]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "id": { "label": "🆔 Gig ID", "format": "number" },
+          "title": { "label": "📝 Title" },
+          "url": { "label": "🔗 URL", "format": "link" },
+          "slug": { "label": "🔖 Slug" },
+          "thumbnail": { "label": "🖼️ Thumbnail", "format": "image" },
+          "seller_id": { "label": "🆔 Seller ID", "format": "number" },
+          "seller_username": { "label": "👤 Username" },
+          "seller_displayName": { "label": "👨‍💼 Display Name" },
+          "seller_country": { "label": "🌍 Country" },
+          "seller_isOnline": { "label": "🟢 Online", "format": "boolean" },
+          "seller_isPro": { "label": "💎 Pro", "format": "boolean" },
+          "seller_level": { "label": "⭐ Level" },
+          "seller_languages": { "label": "🗣️ Languages" },
+          "seller_rating_score": { "label": "⭐ Rating", "format": "number" },
+          "seller_rating_count": { "label": "📊 Reviews", "format": "number" },
+          "starting_price": { "label": "💰 Starting Price", "format": "number" },
+          "currency": { "label": "💵 Currency" },
+          "delivery_days": { "label": "⏱️ Delivery Days", "format": "number" },
+          "total_packages": { "label": "📦 Packages", "format": "number" },
+          "position": { "label": "📍 Position", "format": "number" },
+          "listing_type": { "label": "🏷️ Listing Type" },
+          "is_promoted": { "label": "📢 Promoted", "format": "boolean" },
+          "isFiverrChoice": { "label": "🏆 Fiverr's Choice", "format": "boolean" },
+          "isFeatured": { "label": "⭐ Featured", "format": "boolean" },
+          "buying_rating": { "label": "🛒 Buying Rating", "format": "number" },
+          "buying_review_count": { "label": "🛒 Buying Reviews", "format": "number" },
+          "category_id": { "label": "📁 Category ID", "format": "number" },
+          "subcategory_id": { "label": "📂 Subcategory ID", "format": "number" },
+          "offerConsultation": { "label": "💬 Consultation", "format": "boolean" },
+          "hasVideoIntro": { "label": "🎥 Video Intro", "format": "boolean" },
+          "hasWorkSamples": { "label": "🖼️ Work Samples", "format": "boolean" },
+          "scraped_at": { "label": "🕒 Scraped At", "format": "date" }
+        }
+      }
+    }
+  }
+}

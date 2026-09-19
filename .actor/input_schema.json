@@ -1,0 +1,119 @@
+{
+  "title": "Fiverr Search Gig Scraper",
+  "description": "Search Fiverr gigs by keyword and extract comprehensive gig data including seller info, pricing, ratings, and more. 🎯",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "query": {
+      "title": "Search Query 🔍",
+      "type": "string",
+      "editor": "textfield",
+      "sectionCaption": "🔎 Search Configuration",
+      "sectionDescription": "Configure your Fiverr gig search parameters.",
+      "description": "Service or keyword to search on Fiverr. Examples: 'logo design', 'wordpress developer', 'voice over'. Ignored if Search URL is set.",
+      "prefill": "poster design",
+      "default": "poster design"
+    },
+    "searchUrl": {
+      "title": "Search / Category URL (optional) 🔗",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Paste any Fiverr search or category URL with filters applied, e.g. https://www.fiverr.com/search/gigs?query=logo&ref=seller_level:top_rated_seller . Overrides Search Query.",
+      "nullable": true
+    },
+    "startPage": {
+      "title": "Start Page 📄",
+      "type": "integer",
+      "editor": "number",
+      "description": "Page number to start from (each page = 48 gigs).",
+      "prefill": 1,
+      "default": 1,
+      "minimum": 1
+    },
+    "maxPages": {
+      "title": "Maximum Pages 📚",
+      "type": "integer",
+      "editor": "number",
+      "description": "Maximum number of pages to scrape. Each page contains 48 gigs. 5 pages ≈ 240 gigs.",
+      "prefill": 1,
+      "default": 1,
+      "minimum": 1,
+      "maximum": 50
+    },
+    "sortBy": {
+      "title": "Sort By 🔃",
+      "type": "string",
+      "editor": "select",
+      "description": "Fiverr sorting order.",
+      "default": "auto",
+      "enum": ["auto", "rating", "new", "price_asc", "price_desc"],
+      "enumTitles": ["Recommended", "Best selling / rating", "Newest arrivals", "Price: low → high", "Price: high → low"]
+    },
+    "includeSellerDetails": {
+      "title": "Include Seller Details 👤",
+      "type": "boolean",
+      "editor": "checkbox",
+      "sectionCaption": "⚙️ Data Options",
+      "description": "Seller username, display name, country, rating, level, languages.",
+      "default": true,
+      "prefill": true
+    },
+    "includePricing": {
+      "title": "Include Pricing 💰",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Starting price, currency, delivery days, package count.",
+      "default": true,
+      "prefill": true
+    },
+    "includePerformance": {
+      "title": "Include Performance Metrics 📈",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Position, impression ID, promoted/ad flag, Fiverr's Choice, featured, buying ratings.",
+      "default": true,
+      "prefill": true
+    },
+    "includeGallery": {
+      "title": "Include Gallery Images 🖼️",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "All gallery image URLs and work-sample URLs per gig.",
+      "default": false,
+      "prefill": false
+    },
+    "skipPromoted": {
+      "title": "Skip Promoted (ad) gigs 🚫",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Exclude paid 'promoted_gigs' ads from results so positions reflect organic ranking.",
+      "default": false
+    },
+    "maxItems": {
+      "title": "Max results 🎯",
+      "type": "integer",
+      "editor": "number",
+      "description": "Stop after this many gigs (0 = no limit). Useful to control cost.",
+      "default": 0,
+      "minimum": 0
+    },
+    "proxyConfiguration": {
+      "title": "Proxy configuration 🌐",
+      "type": "object",
+      "editor": "proxy",
+      "sectionCaption": "🌐 Proxy",
+      "description": "Fiverr is protected by PerimeterX. Apify RESIDENTIAL proxies are strongly recommended.",
+      "default": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] },
+      "prefill": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] }
+    },
+    "delayMs": {
+      "title": "Delay between pages (ms) ⏱️",
+      "type": "integer",
+      "editor": "number",
+      "description": "Politeness delay between page requests.",
+      "default": 2000,
+      "minimum": 0
+    }
+  },
+  "required": ["query"]
+}

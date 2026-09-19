@@ -1,0 +1,15 @@
+{
+  "actorSpecification": 1,
+  "name": "fiverr-gig-scraper",
+  "title": "Fiverr Search Gig Scraper",
+  "description": "Search Fiverr gigs by keyword and extract gig, seller, pricing and performance data. Fast HTTP-only scraper, no browser. 🎯",
+  "version": "1.0",
+  "buildTag": "latest",
+  "meta": { "templateId": "js-empty" },
+  "input": "./input_schema.json",
+  "dockerfile": "../Dockerfile",
+  "readme": "../README.md",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  }
+}

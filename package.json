@@ -1,0 +1,16 @@
+{
+  "name": "fiverr-gig-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Fiverr Search Gig Scraper — Apify actor",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node test/parser.test.js"
+  },
+  "dependencies": {
+    "apify": "^3.2.6",
+    "got-scraping": "^4.0.6"
+  },
+  "engines": { "node": ">=18" }
+}
