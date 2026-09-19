@@ -18,6 +18,7 @@ const {
     includePerformance = true,
     includeGallery = false,
     skipPromoted = false,
+    dedupeGigs = false,
     maxItems = 0,
     delayMs = 2000,
     proxyConfiguration = { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
@@ -104,10 +105,14 @@ for (let page = startPage; page < startPage + maxPages; page++) {
     let organicPos = (page - 1) * pag.pageSize;
     gigs.forEach((g, i) => {
         const id = g.gig_id ?? g.gigId ?? g.pk_i;
-        if (id == null || seen.has(id)) return;
+        if (id == null) return;
         const promoted = g.type === 'promoted_gigs';
         if (skipPromoted && promoted) return;
-        seen.add(id);
+        // Fiverr shows the same gig twice on a page (ad slot + organic slot). Like the
+        // original actor we keep every slot (48/page) unless dedupeGigs is enabled.
+        const key = dedupeGigs ? String(id) : `${page}:${g.u_id ?? `${id}_${i}`}`;
+        if (seen.has(key)) return;
+        seen.add(key);
         const position = skipPromoted ? ++organicPos : (page - 1) * pag.pageSize + i + 1;
         items.push(flattenGig(g, position, {
             includeSellerDetails, includePricing, includePerformance, includeGallery, currency, currencyRate,

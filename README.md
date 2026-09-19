@@ -20,6 +20,7 @@ Extract Fiverr gig data for any keyword in seconds. Searches Fiverr like a buyer
 | `sortBy` | enum | `auto` | `auto`, `rating`, `new`, `price_asc`, `price_desc` |
 | `includeSellerDetails` / `includePricing` / `includePerformance` / `includeGallery` | bool | true/true/true/false | Toggle field groups |
 | `skipPromoted` | bool | false | Drop paid ads, keep organic ranking |
+| `dedupeGigs` | bool | false | Fiverr shows a gig twice (ad + organic). OFF = all 48 slots/page, ON = unique gigs only |
 | `maxItems` | int | 0 | Stop after N gigs (cost control) |
 | `proxyConfiguration` | object | Apify RESIDENTIAL | Recommended for reliability |
 | `delayMs` | int | 2000 | Delay between pages |

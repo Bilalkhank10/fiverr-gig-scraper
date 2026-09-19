@@ -46,8 +46,20 @@
       "editor": "select",
       "description": "Fiverr sorting order.",
       "default": "auto",
-      "enum": ["auto", "rating", "new", "price_asc", "price_desc"],
-      "enumTitles": ["Recommended", "Best selling / rating", "Newest arrivals", "Price: low → high", "Price: high → low"]
+      "enum": [
+        "auto",
+        "rating",
+        "new",
+        "price_asc",
+        "price_desc"
+      ],
+      "enumTitles": [
+        "Recommended",
+        "Best selling / rating",
+        "Newest arrivals",
+        "Price: low → high",
+        "Price: high → low"
+      ]
     },
     "includeSellerDetails": {
       "title": "Include Seller Details 👤",
@@ -89,6 +101,13 @@
       "description": "Exclude paid 'promoted_gigs' ads from results so positions reflect organic ranking.",
       "default": false
     },
+    "dedupeGigs": {
+      "title": "Deduplicate gigs 🧹",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Fiverr lists the same gig twice on a page (promoted ad slot + organic slot). OFF = keep all 48 slots per page like the original actor. ON = one row per unique gig ID.",
+      "default": false
+    },
     "maxItems": {
       "title": "Max results 🎯",
       "type": "integer",
@@ -103,8 +122,18 @@
       "editor": "proxy",
       "sectionCaption": "🌐 Proxy",
       "description": "Fiverr is protected by PerimeterX. Apify RESIDENTIAL proxies are strongly recommended.",
-      "default": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] },
-      "prefill": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] }
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": [
+          "RESIDENTIAL"
+        ]
+      },
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": [
+          "RESIDENTIAL"
+        ]
+      }
     },
     "delayMs": {
       "title": "Delay between pages (ms) ⏱️",
@@ -115,5 +144,7 @@
       "minimum": 0
     }
   },
-  "required": ["query"]
+  "required": [
+    "query"
+  ]
 }
