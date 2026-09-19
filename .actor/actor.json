@@ -1,11 +1,13 @@
 {
   "actorSpecification": 1,
   "name": "fiverr-gig-scraper",
-  "title": "Fiverr Search Gig Scraper",
-  "description": "Search Fiverr gigs by keyword and extract gig, seller, pricing and performance data. Fast HTTP-only scraper, no browser. 🎯",
+  "title": "Fiverr Niche Gig Scraper",
+  "description": "Type niches like \"power bi dashboard\", choose how many gigs per niche, start. Gets listing + full gig page data (packages, prices, reviews, seller). 🎯",
   "version": "1.0",
   "buildTag": "latest",
-  "meta": { "templateId": "js-empty" },
+  "meta": {
+    "templateId": "js-empty"
+  },
   "input": "./input_schema.json",
   "dockerfile": "../Dockerfile",
   "readme": "../README.md",

@@ -9,30 +9,40 @@ await Actor.init();
 
 const input = (await Actor.getInput()) ?? {};
 const {
-    scrapeMode = 'search',
+    // ---- simple mode (main UI) ----
+    niches = ['power bi dashboard'],
+    gigsPerNiche = 50,
+    fullDetails = true,
+    // ---- advanced / optional ----
     gigUrls = [],
-    maxReviews = 5,
-    detailConcurrency = 3,
-    query = 'poster design',
-    searchUrl = null,
-    startPage = 1,
-    maxPages = 1,
     sortBy = 'auto',
-    includeSellerDetails = true,
-    includePricing = true,
-    includePerformance = true,
-    includeGallery = false,
     skipPromoted = false,
-    dedupeGigs = false,
-    maxItems = 0,
-    delayMs = 2000,
+    dedupeGigs = true,
+    maxReviews = 5,
+    includeGallery = false,
+    detailConcurrency = 3,
+    delayMs = 1500,
     proxyConfiguration = { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
+    // legacy single-query support
+    query,
+    searchUrl,
 } = input;
 
-const wantSearch = scrapeMode !== 'details';
-const wantDetails = scrapeMode !== 'search';
-if (wantSearch && !query && !searchUrl) throw new Error('❌ Provide "query" or "searchUrl" (or use scrapeMode=details with gigUrls).');
-if (scrapeMode === 'details' && !gigUrls?.length) throw new Error('❌ scrapeMode=details needs at least one URL in "gigUrls".');
+const PAGE_SIZE = 48;
+const MAX_PAGES_PER_NICHE = 50;
+
+// Build niche list: accepts array, or a newline / comma separated string. Legacy `query` also works.
+let nicheList = Array.isArray(niches) ? niches : String(niches ?? '').split(/[\n,]/);
+nicheList = nicheList.map((n) => String(n).trim()).filter(Boolean);
+if (query && !nicheList.length) nicheList = [String(query).trim()];
+nicheList = [...new Set(nicheList)];
+
+const urlList = [...new Set((gigUrls ?? []).map((u) => String(u).trim().split('?')[0])
+    .filter((u) => /^https?:\/\/(www\.)?fiverr\.com\/[^/]+\/[^/]+/.test(u)))];
+
+if (!nicheList.length && !urlList.length && !searchUrl) {
+    throw new Error('❌ Please enter at least one niche (e.g. "power bi dashboard") or a gig URL.');
+}
 
 const proxyConf = await Actor.createProxyConfiguration(proxyConfiguration);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -77,88 +87,81 @@ async function fetchPage(url, attempt = 0) {
     }
 }
 
-const seen = new Set();
-let pushed = 0;
-let totalAvailable = null;
-const detailQueue = [];
+// ---------------------------------------------------------------------------
+// 1) SEARCH PHASE — collect `gigsPerNiche` gigs for every niche
+// ---------------------------------------------------------------------------
+const detailQueue = [];          // { url, listing }
+const summary = { niches: {}, gigsCollected: 0, detailsOk: 0, detailsFailed: 0 };
+const flatOpts = { includeSellerDetails: true, includePricing: true, includePerformance: true, includeGallery };
 
-log.info(`🚀 Fiverr Gig Scraper | mode=${scrapeMode} | query="${searchUrl ?? query}" | pages ${startPage}..${startPage + maxPages - 1} | sort=${sortBy}`);
+const searchTargets = nicheList.map((n) => ({ label: n, query: n, searchUrl: null }));
+if (searchUrl) searchTargets.push({ label: searchUrl, query: null, searchUrl });
 
-outer:
-for (let page = startPage; wantSearch && page < startPage + maxPages; page++) {
-    const url = buildUrl({ query, searchUrl, page, sortBy });
-    log.info(`📄 Page ${page} → ${url}`);
+log.info(`🚀 Fiverr Niche Scraper | ${searchTargets.length} niche(s) × ${gigsPerNiche} gigs | fullDetails=${fullDetails} | urls=${urlList.length}`);
 
-    let props;
-    try {
-        props = extractProps(await fetchPage(url));
-    } catch (err) {
-        log.error(`❌ Page ${page} failed: ${err.message}`);
-        break;
-    }
+for (const target of searchTargets) {
+    const seenIds = new Set();
+    let collected = 0;
+    let total = null;
+    const maxPages = Math.min(MAX_PAGES_PER_NICHE, Math.ceil(gigsPerNiche / (skipPromoted || dedupeGigs ? 38 : PAGE_SIZE)) + 1);
+    log.info(`\n🔎 Niche: "${target.label}" — need ${gigsPerNiche} gigs`);
 
-    const gigs = getGigs(props);
-    const pag = getPagination(props);
-    const { name: currency, rate: currencyRate } = getCurrency(props);
-    if (currency !== 'USD') log.warning(`  💱 Fiverr returned prices in ${currency} (rate ${currencyRate}) — converting to USD`);
-    totalAvailable = pag.total;
-
-    if (!gigs.length) {
-        log.info('ℹ️  No gigs on this page — stopping.');
-        break;
-    }
-
-    const items = [];
-    let organicPos = (page - 1) * pag.pageSize;
-    gigs.forEach((g, i) => {
-        const id = g.gig_id ?? g.gigId ?? g.pk_i;
-        if (id == null) return;
-        const promoted = g.type === 'promoted_gigs';
-        if (skipPromoted && promoted) return;
-        // Fiverr shows the same gig twice on a page (ad slot + organic slot). Like the
-        // original actor we keep every slot (48/page) unless dedupeGigs is enabled.
-        const key = dedupeGigs ? String(id) : `${page}:${g.u_id ?? `${id}_${i}`}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        const position = skipPromoted ? ++organicPos : (page - 1) * pag.pageSize + i + 1;
-        items.push(flattenGig(g, position, {
-            includeSellerDetails, includePricing, includePerformance, includeGallery, currency, currencyRate,
-        }));
-    });
-
-    const room = maxItems > 0 ? Math.max(0, maxItems - pushed) : items.length;
-    const batch = items.slice(0, room);
-    if (batch.length) {
-        if (wantDetails) {
-            batch.forEach((it) => detailQueue.push({ url: it.url, listing: it }));
-        } else {
-            await Actor.pushData(batch);
+    for (let page = 1; page <= maxPages && collected < gigsPerNiche; page++) {
+        const url = buildUrl({ query: target.query, searchUrl: target.searchUrl, page, sortBy });
+        let props;
+        try {
+            props = extractProps(await fetchPage(url));
+        } catch (err) {
+            log.error(`  ❌ page ${page} failed: ${err.message}`);
+            break;
         }
-        pushed += batch.length;
-    }
-    log.info(`  ✅ ${batch.length} gigs saved (total so far ${pushed}, Fiverr reports ${pag.total} matches)`);
+        const gigs = getGigs(props);
+        const pag = getPagination(props);
+        const { name: currency, rate: currencyRate } = getCurrency(props);
+        if (currency !== 'USD') log.warning(`  💱 prices came in ${currency} — converting to USD`);
+        total = pag.total;
+        if (!gigs.length) break;
 
-    if (maxItems > 0 && pushed >= maxItems) { log.info('🎯 maxItems reached.'); break outer; }
-    if (page * pag.pageSize >= pag.total) { log.info('🏁 Reached last page.'); break; }
-    if (page < startPage + maxPages - 1 && delayMs > 0) await sleep(delayMs);
+        const items = [];
+        gigs.forEach((g, i) => {
+            if (collected + items.length >= gigsPerNiche) return;
+            const id = g.gig_id ?? g.gigId ?? g.pk_i;
+            if (id == null) return;
+            const promoted = g.type === 'promoted_gigs';
+            if (skipPromoted && promoted) return;
+            const key = dedupeGigs ? String(id) : `${page}:${g.u_id ?? `${id}_${i}`}`;
+            if (seenIds.has(key)) return;
+            seenIds.add(key);
+            const rec = flattenGig(g, (page - 1) * pag.pageSize + i + 1, { ...flatOpts, currency, currencyRate });
+            rec.niche = target.label;
+            rec.search_rank = collected + items.length + 1;
+            items.push(rec);
+        });
+
+        collected += items.length;
+        if (fullDetails) items.forEach((it) => detailQueue.push({ url: it.url, listing: it }));
+        else if (items.length) await Actor.pushData(items);
+
+        log.info(`  📄 page ${page}: +${items.length} → ${collected}/${gigsPerNiche} (Fiverr has ${pag.total} results)`);
+        if (page * pag.pageSize >= pag.total) break;
+        if (collected < gigsPerNiche && delayMs > 0) await sleep(delayMs);
+    }
+    summary.niches[target.label] = { collected, availableOnFiverr: total };
+    summary.gigsCollected += collected;
 }
 
-// ---------------- Gig detail pages ----------------
-if (wantDetails) {
-    const seenUrls = new Set(detailQueue.map((d) => d.url));
-    for (const u of gigUrls ?? []) {
-        const clean = String(u).trim().split('?')[0];
-        if (/^https?:\/\/(www\.)?fiverr\.com\/[^/]+\/[^/]+/.test(clean) && !seenUrls.has(clean)) {
-            seenUrls.add(clean); detailQueue.push({ url: clean, listing: null });
-        }
-    }
-    const limit = maxItems > 0 ? maxItems : Infinity;
-    const jobs = detailQueue.slice(0, limit);
-    log.info(`🔎 Opening ${jobs.length} gig pages (concurrency ${detailConcurrency})…`);
-    let done = 0; let failed = 0; let idx = 0;
+// ---------------------------------------------------------------------------
+// 2) DETAIL PHASE — open each gig page (fullDetails) + user supplied URLs
+// ---------------------------------------------------------------------------
+const queuedUrls = new Set(detailQueue.map((d) => d.url));
+for (const u of urlList) if (!queuedUrls.has(u)) { queuedUrls.add(u); detailQueue.push({ url: u, listing: null }); }
+
+if (detailQueue.length) {
+    log.info(`\n📦 Opening ${detailQueue.length} gig pages (concurrency ${detailConcurrency})…`);
+    let idx = 0;
     const worker = async () => {
-        while (idx < jobs.length) {
-            const job = jobs[idx++];
+        while (idx < detailQueue.length) {
+            const job = detailQueue[idx++];
             try {
                 const html = await fetchPage(job.url);
                 const props = extractProps(html);
@@ -166,13 +169,14 @@ if (wantDetails) {
                 const detail = parseGigDetail(html, { currency: cur.name, currencyRate: cur.rate, maxReviews });
                 if (!detail) throw new Error('gig data not found in page');
                 const out = job.listing
-                    ? { ...job.listing, ...detail, position: job.listing.position, is_promoted: job.listing.is_promoted, listing_type: job.listing.listing_type, impression_id: job.listing.impression_id }
-                    : detail;
+                    ? { ...job.listing, ...detail, niche: job.listing.niche, search_rank: job.listing.search_rank, position: job.listing.position, is_promoted: job.listing.is_promoted, listing_type: job.listing.listing_type }
+                    : { niche: 'manual_url', ...detail };
                 await Actor.pushData(out);
-                done++;
-                if (done % 10 === 0) log.info(`  📦 ${done}/${jobs.length} gig pages done`);
+                summary.detailsOk++;
+                const done = summary.detailsOk + summary.detailsFailed;
+                if (done % 10 === 0 || done === detailQueue.length) log.info(`  ✅ ${done}/${detailQueue.length} gig pages done`);
             } catch (err) {
-                failed++;
+                summary.detailsFailed++;
                 log.warning(`  ❌ ${job.url} — ${err.message}`);
                 if (job.listing) await Actor.pushData({ ...job.listing, detail_error: err.message });
             }
@@ -180,12 +184,9 @@ if (wantDetails) {
         }
     };
     await Promise.all(Array.from({ length: Math.max(1, detailConcurrency) }, worker));
-    pushed = done + failed;
-    log.info(`  ✅ details: ${done} ok, ${failed} failed`);
 }
 
-await Actor.setValue('SUMMARY', {
-    mode: scrapeMode, query: searchUrl ?? query, sortBy, pagesRequested: maxPages, gigsSaved: pushed, totalAvailableOnFiverr: totalAvailable,
-});
-log.info(`🎉 Done. ${pushed} gigs in dataset.`);
+await Actor.setValue('SUMMARY', summary);
+log.info(`\n🎉 Done. ${summary.gigsCollected} gigs from ${searchTargets.length} niche(s)` + (fullDetails ? ` | details: ${summary.detailsOk} ok, ${summary.detailsFailed} failed` : ''));
+log.info(JSON.stringify(summary.niches));
 await Actor.exit();
