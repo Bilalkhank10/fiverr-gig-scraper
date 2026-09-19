@@ -4,6 +4,50 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
+    "scrapeMode": {
+      "title": "Scrape Mode 🎛️",
+      "type": "string",
+      "editor": "select",
+      "sectionCaption": "🎛️ Mode",
+      "description": "search = fast listing only (48 gigs/page). search+details = open every gig page for packages, description, FAQ, reviews, seller bio (slower, ~1 request per gig). details = only scrape the Gig URLs you provide below.",
+      "default": "search",
+      "enum": [
+        "search",
+        "search_details",
+        "details"
+      ],
+      "enumTitles": [
+        "Search listing only (fast)",
+        "Search + open each gig page (full data)",
+        "Gig URLs only (full data)"
+      ]
+    },
+    "gigUrls": {
+      "title": "Gig URLs 🔗",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Fiverr gig URLs to scrape in detail (used in 'details' mode, also appended in other modes). e.g. https://www.fiverr.com/username/gig-slug",
+      "prefill": [],
+      "default": []
+    },
+    "maxReviews": {
+      "title": "Reviews per gig 💬",
+      "type": "integer",
+      "editor": "number",
+      "description": "How many latest reviews to include from the gig page (max ~5-10 embedded).",
+      "default": 5,
+      "minimum": 0,
+      "maximum": 20
+    },
+    "detailConcurrency": {
+      "title": "Detail page concurrency ⚡",
+      "type": "integer",
+      "editor": "number",
+      "description": "Parallel gig-page requests. Keep low (2-5) to avoid blocks.",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10
+    },
     "query": {
       "title": "Search Query 🔍",
       "type": "string",
@@ -144,7 +188,5 @@
       "minimum": 0
     }
   },
-  "required": [
-    "query"
-  ]
+  "required": []
 }

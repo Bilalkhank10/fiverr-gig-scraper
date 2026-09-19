@@ -20,4 +20,14 @@ const promoted = gigs.filter((g) => g.type === 'promoted_gigs').length;
 console.log(`✅ parser OK — 48 gigs, ${promoted} promoted, sample:`, JSON.stringify(rec, null, 1).slice(0, 600));
 assert.equal(buildUrl({ query: 'logo design', page: 2, sortBy: 'rating' }),
   'https://www.fiverr.com/search/gigs?query=logo+design&source=top-bar&page=2&offset=48&sort_by=rating');
+import { parseGigDetail } from '../src/gigDetail.js';
+const gigHtml = readFileSync(new URL('./sample_gig_page.html', import.meta.url), 'utf8');
+const det = parseGigDetail(gigHtml);
+assert.equal(det.gig_id, 459112484);
+assert.equal(det.packages.length, 3);
+assert.equal(det.packages[0].price, 40);
+assert.equal(det.packages[0].delivery_days, 3);
+assert.ok(det.description.length > 100 && det.faq.length > 0 && det.reviews.length > 0);
+assert.equal(det.seller.username, 'brandoradesign');
+console.log('✅ gig detail parser OK');
 console.log('✅ all tests passed');

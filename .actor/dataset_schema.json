@@ -250,6 +250,82 @@
           }
         }
       }
+    },
+    "details": {
+      "title": "🔍 Gig Details",
+      "transformation": {
+        "fields": [
+          "id",
+          "title",
+          "url",
+          "thumbnail",
+          "seller_username",
+          "seller_level",
+          "rating",
+          "rating_count",
+          "orders_in_queue",
+          "price_min",
+          "price_max",
+          "currency",
+          "tags",
+          "subcategory"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "id": {
+            "label": "🆔 Gig ID",
+            "format": "number"
+          },
+          "title": {
+            "label": "📝 Title"
+          },
+          "url": {
+            "label": "🔗 URL",
+            "format": "link"
+          },
+          "thumbnail": {
+            "label": "🖼️",
+            "format": "image"
+          },
+          "seller_username": {
+            "label": "👤 Seller"
+          },
+          "seller_level": {
+            "label": "⭐ Level"
+          },
+          "rating": {
+            "label": "⭐ Rating",
+            "format": "number"
+          },
+          "rating_count": {
+            "label": "📊 Reviews",
+            "format": "number"
+          },
+          "orders_in_queue": {
+            "label": "📥 In Queue",
+            "format": "number"
+          },
+          "price_min": {
+            "label": "💰 Min",
+            "format": "number"
+          },
+          "price_max": {
+            "label": "💰 Max",
+            "format": "number"
+          },
+          "currency": {
+            "label": "💵"
+          },
+          "tags": {
+            "label": "🏷️ Tags"
+          },
+          "subcategory": {
+            "label": "📂 Subcategory"
+          }
+        }
+      }
     }
   }
 }

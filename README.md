@@ -10,9 +10,28 @@ Extract Fiverr gig data for any keyword in seconds. Searches Fiverr like a buyer
 - **Features**: consultation, video intro, work samples, recurring option
 - **Gallery** (optional): all gig images + delivery work samples
 
+## 🎛️ Three modes
+| `scrapeMode` | What it does | Speed |
+|---|---|---|
+| `search` (default) | Search listing only — 48 gigs per page, same fields as the classic actor | ⚡ 1 request / 48 gigs |
+| `search_details` | Search, then **opens every gig page** and merges full data | 1 request per gig |
+| `details` | Only scrape the `gigUrls` you paste | 1 request per gig |
+
+### Extra fields from the gig page (details modes)
+- **All 3 packages**: title, description, price, delivery days, revisions, extra-fast price, every included feature, custom extras
+- `price_min` / `price_max`, recurring-subscription discounts
+- Full **description** (text + HTML), **FAQ**, gig **tags**, category names, metadata (style, file formats…), Fiverr **AI summary**
+- `orders_in_queue`, rating & rating count, full **gallery** (images + videos)
+- **Seller profile**: bio, one-liner, level, completed orders, response time, member since, last delivery, languages, skills, education, certifications, hourly rate, Pro/verified flags
+- **Reviews**: star breakdown (1–5), communication / quality / value sub-scores, top buyer industries, latest N reviews with comment, country, price range, seller response
+
 ## ⚙️ Input
 | Field | Type | Default | Description |
 |---|---|---|---|
+| `scrapeMode` | enum | `search` | `search`, `search_details`, `details` |
+| `gigUrls` | array | [] | Gig URLs for `details` mode |
+| `maxReviews` | int | 5 | Reviews per gig (details modes) |
+| `detailConcurrency` | int | 3 | Parallel gig-page requests |
 | `query` | string | `poster design` | Keyword to search |
 | `searchUrl` | string | – | Any Fiverr search / category URL (with filters). Overrides `query` |
 | `startPage` | int | 1 | First page (48 gigs per page) |

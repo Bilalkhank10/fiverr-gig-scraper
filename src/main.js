@@ -3,11 +3,16 @@ import { gotScraping } from 'got-scraping';
 import {
     extractProps, getGigs, getPagination, getCurrency, flattenGig, buildUrl, isBlocked,
 } from './parser.js';
+import { parseGigDetail } from './gigDetail.js';
 
 await Actor.init();
 
 const input = (await Actor.getInput()) ?? {};
 const {
+    scrapeMode = 'search',
+    gigUrls = [],
+    maxReviews = 5,
+    detailConcurrency = 3,
     query = 'poster design',
     searchUrl = null,
     startPage = 1,
@@ -24,9 +29,10 @@ const {
     proxyConfiguration = { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
 } = input;
 
-if (!query && !searchUrl) {
-    throw new Error('❌ Provide either "query" or "searchUrl".');
-}
+const wantSearch = scrapeMode !== 'details';
+const wantDetails = scrapeMode !== 'search';
+if (wantSearch && !query && !searchUrl) throw new Error('❌ Provide "query" or "searchUrl" (or use scrapeMode=details with gigUrls).');
+if (scrapeMode === 'details' && !gigUrls?.length) throw new Error('❌ scrapeMode=details needs at least one URL in "gigUrls".');
 
 const proxyConf = await Actor.createProxyConfiguration(proxyConfiguration);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -74,11 +80,12 @@ async function fetchPage(url, attempt = 0) {
 const seen = new Set();
 let pushed = 0;
 let totalAvailable = null;
+const detailQueue = [];
 
-log.info(`🚀 Fiverr Gig Scraper | query="${searchUrl ?? query}" | pages ${startPage}..${startPage + maxPages - 1} | sort=${sortBy}`);
+log.info(`🚀 Fiverr Gig Scraper | mode=${scrapeMode} | query="${searchUrl ?? query}" | pages ${startPage}..${startPage + maxPages - 1} | sort=${sortBy}`);
 
 outer:
-for (let page = startPage; page < startPage + maxPages; page++) {
+for (let page = startPage; wantSearch && page < startPage + maxPages; page++) {
     const url = buildUrl({ query, searchUrl, page, sortBy });
     log.info(`📄 Page ${page} → ${url}`);
 
@@ -122,7 +129,11 @@ for (let page = startPage; page < startPage + maxPages; page++) {
     const room = maxItems > 0 ? Math.max(0, maxItems - pushed) : items.length;
     const batch = items.slice(0, room);
     if (batch.length) {
-        await Actor.pushData(batch);
+        if (wantDetails) {
+            batch.forEach((it) => detailQueue.push({ url: it.url, listing: it }));
+        } else {
+            await Actor.pushData(batch);
+        }
         pushed += batch.length;
     }
     log.info(`  ✅ ${batch.length} gigs saved (total so far ${pushed}, Fiverr reports ${pag.total} matches)`);
@@ -132,8 +143,49 @@ for (let page = startPage; page < startPage + maxPages; page++) {
     if (page < startPage + maxPages - 1 && delayMs > 0) await sleep(delayMs);
 }
 
+// ---------------- Gig detail pages ----------------
+if (wantDetails) {
+    const seenUrls = new Set(detailQueue.map((d) => d.url));
+    for (const u of gigUrls ?? []) {
+        const clean = String(u).trim().split('?')[0];
+        if (/^https?:\/\/(www\.)?fiverr\.com\/[^/]+\/[^/]+/.test(clean) && !seenUrls.has(clean)) {
+            seenUrls.add(clean); detailQueue.push({ url: clean, listing: null });
+        }
+    }
+    const limit = maxItems > 0 ? maxItems : Infinity;
+    const jobs = detailQueue.slice(0, limit);
+    log.info(`🔎 Opening ${jobs.length} gig pages (concurrency ${detailConcurrency})…`);
+    let done = 0; let failed = 0; let idx = 0;
+    const worker = async () => {
+        while (idx < jobs.length) {
+            const job = jobs[idx++];
+            try {
+                const html = await fetchPage(job.url);
+                const props = extractProps(html);
+                const cur = getCurrency(props);
+                const detail = parseGigDetail(html, { currency: cur.name, currencyRate: cur.rate, maxReviews });
+                if (!detail) throw new Error('gig data not found in page');
+                const out = job.listing
+                    ? { ...job.listing, ...detail, position: job.listing.position, is_promoted: job.listing.is_promoted, listing_type: job.listing.listing_type, impression_id: job.listing.impression_id }
+                    : detail;
+                await Actor.pushData(out);
+                done++;
+                if (done % 10 === 0) log.info(`  📦 ${done}/${jobs.length} gig pages done`);
+            } catch (err) {
+                failed++;
+                log.warning(`  ❌ ${job.url} — ${err.message}`);
+                if (job.listing) await Actor.pushData({ ...job.listing, detail_error: err.message });
+            }
+            if (delayMs > 0) await sleep(Math.min(delayMs, 1000));
+        }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, detailConcurrency) }, worker));
+    pushed = done + failed;
+    log.info(`  ✅ details: ${done} ok, ${failed} failed`);
+}
+
 await Actor.setValue('SUMMARY', {
-    query: searchUrl ?? query, sortBy, pagesRequested: maxPages, gigsSaved: pushed, totalAvailableOnFiverr: totalAvailable,
+    mode: scrapeMode, query: searchUrl ?? query, sortBy, pagesRequested: maxPages, gigsSaved: pushed, totalAvailableOnFiverr: totalAvailable,
 });
 log.info(`🎉 Done. ${pushed} gigs in dataset.`);
 await Actor.exit();
