@@ -3,111 +3,10 @@
   "title": "Fiverr Gigs Data",
   "description": "Scraped Fiverr gig data: title, seller, pricing, ratings, performance metrics and gallery images.",
   "views": {
-    "details": {
-      "title": "🎯 Niche Results",
-      "transformation": {
-        "fields": [
-          "niche",
-          "search_rank",
-          "id",
-          "title",
-          "url",
-          "thumbnail",
-          "seller_username",
-          "seller_level",
-          "seller_country",
-          "rating",
-          "rating_count",
-          "orders_in_queue",
-          "price_min",
-          "price_max",
-          "currency",
-          "delivery_days",
-          "is_promoted",
-          "tags",
-          "subcategory"
-        ]
-      },
-      "display": {
-        "component": "table",
-        "properties": {
-          "niche": {
-            "label": "🎯 Niche"
-          },
-          "search_rank": {
-            "label": "#",
-            "format": "number"
-          },
-          "id": {
-            "label": "🆔 Gig ID",
-            "format": "number"
-          },
-          "title": {
-            "label": "📝 Title"
-          },
-          "url": {
-            "label": "🔗 URL",
-            "format": "link"
-          },
-          "thumbnail": {
-            "label": "🖼️",
-            "format": "image"
-          },
-          "seller_username": {
-            "label": "👤 Seller"
-          },
-          "seller_level": {
-            "label": "⭐ Level"
-          },
-          "rating": {
-            "label": "⭐ Rating",
-            "format": "number"
-          },
-          "rating_count": {
-            "label": "📊 Reviews",
-            "format": "number"
-          },
-          "orders_in_queue": {
-            "label": "📥 In Queue",
-            "format": "number"
-          },
-          "price_min": {
-            "label": "💰 Min",
-            "format": "number"
-          },
-          "price_max": {
-            "label": "💰 Max",
-            "format": "number"
-          },
-          "currency": {
-            "label": "💵"
-          },
-          "tags": {
-            "label": "🏷️ Tags"
-          },
-          "subcategory": {
-            "label": "📂 Subcategory"
-          },
-          "seller_country": {
-            "label": "🌍"
-          },
-          "delivery_days": {
-            "label": "⏱️ Days",
-            "format": "number"
-          },
-          "is_promoted": {
-            "label": "📢 Ad",
-            "format": "boolean"
-          }
-        }
-      }
-    },
     "overview": {
       "title": "📊 Gigs Overview",
       "transformation": {
         "fields": [
-          "niche",
-          "search_rank",
           "id",
           "title",
           "url",
@@ -128,13 +27,6 @@
       "display": {
         "component": "table",
         "properties": {
-          "niche": {
-            "label": "🎯 Niche"
-          },
-          "search_rank": {
-            "label": "#",
-            "format": "number"
-          },
           "id": {
             "label": "🆔 Gig ID",
             "format": "number"
@@ -196,8 +88,6 @@
       "title": "📋 Detailed View",
       "transformation": {
         "fields": [
-          "niche",
-          "search_rank",
           "id",
           "title",
           "url",
@@ -236,13 +126,6 @@
       "display": {
         "component": "table",
         "properties": {
-          "niche": {
-            "label": "🎯 Niche"
-          },
-          "search_rank": {
-            "label": "#",
-            "format": "number"
-          },
           "id": {
             "label": "🆔 Gig ID",
             "format": "number"
@@ -364,6 +247,82 @@
           },
           "tags": {
             "label": "🏷️ Tags"
+          }
+        }
+      }
+    },
+    "details": {
+      "title": "🔍 Gig Details",
+      "transformation": {
+        "fields": [
+          "id",
+          "title",
+          "url",
+          "thumbnail",
+          "seller_username",
+          "seller_level",
+          "rating",
+          "rating_count",
+          "orders_in_queue",
+          "price_min",
+          "price_max",
+          "currency",
+          "tags",
+          "subcategory"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "id": {
+            "label": "🆔 Gig ID",
+            "format": "number"
+          },
+          "title": {
+            "label": "📝 Title"
+          },
+          "url": {
+            "label": "🔗 URL",
+            "format": "link"
+          },
+          "thumbnail": {
+            "label": "🖼️",
+            "format": "image"
+          },
+          "seller_username": {
+            "label": "👤 Seller"
+          },
+          "seller_level": {
+            "label": "⭐ Level"
+          },
+          "rating": {
+            "label": "⭐ Rating",
+            "format": "number"
+          },
+          "rating_count": {
+            "label": "📊 Reviews",
+            "format": "number"
+          },
+          "orders_in_queue": {
+            "label": "📥 In Queue",
+            "format": "number"
+          },
+          "price_min": {
+            "label": "💰 Min",
+            "format": "number"
+          },
+          "price_max": {
+            "label": "💰 Max",
+            "format": "number"
+          },
+          "currency": {
+            "label": "💵"
+          },
+          "tags": {
+            "label": "🏷️ Tags"
+          },
+          "subcategory": {
+            "label": "📂 Subcategory"
           }
         }
       }

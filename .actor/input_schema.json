@@ -1,110 +1,192 @@
 {
-  "title": "Fiverr Niche Gig Scraper",
-  "description": "Type your niches, choose how many gigs you want per niche, click Start. 🎯",
+  "title": "Fiverr Search Gig Scraper",
+  "description": "Search Fiverr gigs by keyword and extract comprehensive gig data including seller info, pricing, ratings, and more. 🎯",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
-    "niches": {
-      "title": "Niches / Keywords 🎯",
-      "type": "array",
-      "editor": "stringList",
-      "sectionCaption": "🎯 What to scrape",
-      "sectionDescription": "Enter one niche per line. The scraper searches Fiverr for each one.",
-      "description": "One niche per line, e.g. 'power bi dashboard', 'looker studio dashboard', 'tableau dashboard', 'excel automation'.",
-      "prefill": ["power bi dashboard", "looker studio dashboard"],
-      "default": ["power bi dashboard"]
-    },
-    "gigsPerNiche": {
-      "title": "Gigs per niche 🔢",
-      "type": "integer",
-      "editor": "number",
-      "description": "How many gigs to collect for EACH niche. 48 gigs = 1 search page. Max ≈ 2000.",
-      "prefill": 50,
-      "default": 50,
-      "minimum": 1,
-      "maximum": 2000
-    },
-    "fullDetails": {
-      "title": "Open every gig page for full data 📦",
-      "type": "boolean",
-      "editor": "checkbox",
-      "description": "ON = visit each gig's page: all 3 packages & prices, description, FAQ, reviews, seller bio, completed orders, response time… (1 request per gig, slower). OFF = fast listing data only.",
-      "default": true,
-      "prefill": true
-    },
-    "gigUrls": {
-      "title": "Extra gig URLs (optional) 🔗",
-      "type": "array",
-      "editor": "stringList",
-      "description": "Specific Fiverr gig URLs to scrape in full, in addition to the niches above.",
-      "prefill": [],
-      "default": []
-    },
-
-    "sortBy": {
-      "title": "Sort By 🔃",
+    "scrapeMode": {
+      "title": "Scrape Mode 🎛️",
       "type": "string",
       "editor": "select",
-      "sectionCaption": "⚙️ Advanced (optional)",
-      "description": "Fiverr sorting order for the search.",
-      "default": "auto",
-      "enum": ["auto", "rating", "new", "price_asc", "price_desc"],
-      "enumTitles": ["Recommended", "Best selling / rating", "Newest arrivals", "Price: low → high", "Price: high → low"]
+      "sectionCaption": "🎛️ Mode",
+      "description": "search = fast listing only (48 gigs/page). search+details = open every gig page for packages, description, FAQ, reviews, seller bio (slower, ~1 request per gig). details = only scrape the Gig URLs you provide below.",
+      "default": "search",
+      "enum": [
+        "search",
+        "search_details",
+        "details"
+      ],
+      "enumTitles": [
+        "Search listing only (fast)",
+        "Search + open each gig page (full data)",
+        "Gig URLs only (full data)"
+      ]
     },
-    "dedupeGigs": {
-      "title": "One row per unique gig 🧹",
-      "type": "boolean",
-      "editor": "checkbox",
-      "description": "Fiverr repeats the same gig in an ad slot and an organic slot. ON (recommended) = each gig once. OFF = raw 48 slots per page.",
-      "default": true
-    },
-    "skipPromoted": {
-      "title": "Skip promoted (ad) gigs 🚫",
-      "type": "boolean",
-      "editor": "checkbox",
-      "description": "Exclude paid ads so results reflect organic ranking.",
-      "default": false
+    "gigUrls": {
+      "title": "Gig URLs 🔗",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Fiverr gig URLs to scrape in detail (used in 'details' mode, also appended in other modes). e.g. https://www.fiverr.com/username/gig-slug",
+      "prefill": [],
+      "default": []
     },
     "maxReviews": {
       "title": "Reviews per gig 💬",
       "type": "integer",
       "editor": "number",
-      "description": "Latest reviews to include from each gig page (full-details mode).",
+      "description": "How many latest reviews to include from the gig page (max ~5-10 embedded).",
       "default": 5,
       "minimum": 0,
       "maximum": 20
     },
-    "includeGallery": {
-      "title": "Include gallery image URLs 🖼️",
-      "type": "boolean",
-      "editor": "checkbox",
-      "description": "Add all gig image / video URLs to each row.",
-      "default": false
-    },
     "detailConcurrency": {
-      "title": "Parallel gig-page requests ⚡",
+      "title": "Detail page concurrency ⚡",
       "type": "integer",
       "editor": "number",
-      "description": "Keep 2–5 to avoid blocks.",
+      "description": "Parallel gig-page requests. Keep low (2-5) to avoid blocks.",
       "default": 3,
       "minimum": 1,
       "maximum": 10
     },
-    "delayMs": {
-      "title": "Delay between requests (ms) ⏱️",
+    "query": {
+      "title": "Search Query 🔍",
+      "type": "string",
+      "editor": "textfield",
+      "sectionCaption": "🔎 Search Configuration",
+      "sectionDescription": "Configure your Fiverr gig search parameters.",
+      "description": "Service or keyword to search on Fiverr. Examples: 'logo design', 'wordpress developer', 'voice over'. Ignored if Search URL is set.",
+      "prefill": "poster design",
+      "default": "poster design"
+    },
+    "searchUrl": {
+      "title": "Search / Category URL (optional) 🔗",
+      "type": "string",
+      "editor": "textfield",
+      "description": "Paste any Fiverr search or category URL with filters applied, e.g. https://www.fiverr.com/search/gigs?query=logo&ref=seller_level:top_rated_seller . Overrides Search Query.",
+      "nullable": true
+    },
+    "startPage": {
+      "title": "Start Page 📄",
       "type": "integer",
       "editor": "number",
-      "default": 1500,
+      "description": "Page number to start from (each page = 48 gigs).",
+      "prefill": 1,
+      "default": 1,
+      "minimum": 1
+    },
+    "maxPages": {
+      "title": "Maximum Pages 📚",
+      "type": "integer",
+      "editor": "number",
+      "description": "Maximum number of pages to scrape. Each page contains 48 gigs. 5 pages ≈ 240 gigs.",
+      "prefill": 1,
+      "default": 1,
+      "minimum": 1,
+      "maximum": 50
+    },
+    "sortBy": {
+      "title": "Sort By 🔃",
+      "type": "string",
+      "editor": "select",
+      "description": "Fiverr sorting order.",
+      "default": "auto",
+      "enum": [
+        "auto",
+        "rating",
+        "new",
+        "price_asc",
+        "price_desc"
+      ],
+      "enumTitles": [
+        "Recommended",
+        "Best selling / rating",
+        "Newest arrivals",
+        "Price: low → high",
+        "Price: high → low"
+      ]
+    },
+    "includeSellerDetails": {
+      "title": "Include Seller Details 👤",
+      "type": "boolean",
+      "editor": "checkbox",
+      "sectionCaption": "⚙️ Data Options",
+      "description": "Seller username, display name, country, rating, level, languages.",
+      "default": true,
+      "prefill": true
+    },
+    "includePricing": {
+      "title": "Include Pricing 💰",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Starting price, currency, delivery days, package count.",
+      "default": true,
+      "prefill": true
+    },
+    "includePerformance": {
+      "title": "Include Performance Metrics 📈",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Position, impression ID, promoted/ad flag, Fiverr's Choice, featured, buying ratings.",
+      "default": true,
+      "prefill": true
+    },
+    "includeGallery": {
+      "title": "Include Gallery Images 🖼️",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "All gallery image URLs and work-sample URLs per gig.",
+      "default": false,
+      "prefill": false
+    },
+    "skipPromoted": {
+      "title": "Skip Promoted (ad) gigs 🚫",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Exclude paid 'promoted_gigs' ads from results so positions reflect organic ranking.",
+      "default": false
+    },
+    "dedupeGigs": {
+      "title": "Deduplicate gigs 🧹",
+      "type": "boolean",
+      "editor": "checkbox",
+      "description": "Fiverr lists the same gig twice on a page (promoted ad slot + organic slot). OFF = keep all 48 slots per page like the original actor. ON = one row per unique gig ID.",
+      "default": false
+    },
+    "maxItems": {
+      "title": "Max results 🎯",
+      "type": "integer",
+      "editor": "number",
+      "description": "Stop after this many gigs (0 = no limit). Useful to control cost.",
+      "default": 0,
       "minimum": 0
     },
     "proxyConfiguration": {
-      "title": "Proxy 🌐",
+      "title": "Proxy configuration 🌐",
       "type": "object",
       "editor": "proxy",
-      "description": "Fiverr is protected by PerimeterX — Apify RESIDENTIAL proxies are strongly recommended.",
-      "default": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] },
-      "prefill": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] }
+      "sectionCaption": "🌐 Proxy",
+      "description": "Fiverr is protected by PerimeterX. Apify RESIDENTIAL proxies are strongly recommended.",
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": [
+          "RESIDENTIAL"
+        ]
+      },
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": [
+          "RESIDENTIAL"
+        ]
+      }
+    },
+    "delayMs": {
+      "title": "Delay between pages (ms) ⏱️",
+      "type": "integer",
+      "editor": "number",
+      "description": "Politeness delay between page requests.",
+      "default": 2000,
+      "minimum": 0
     }
   },
-  "required": ["niches", "gigsPerNiche"]
+  "required": []
 }
