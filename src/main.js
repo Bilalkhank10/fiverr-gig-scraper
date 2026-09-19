@@ -30,7 +30,9 @@ if (!query && !searchUrl) {
 const proxyConf = await Actor.createProxyConfiguration(proxyConfiguration);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Force USD regardless of proxy country (Fiverr localizes currency by IP)
 const HEADERS = {
+    cookie: 'currency=USD; u_currency=USD; locale=en-US',
     accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'accept-language': 'en-US,en;q=0.9',
     'upgrade-insecure-requests': '1',
@@ -89,7 +91,8 @@ for (let page = startPage; page < startPage + maxPages; page++) {
 
     const gigs = getGigs(props);
     const pag = getPagination(props);
-    const currency = getCurrency(props);
+    const { name: currency, rate: currencyRate } = getCurrency(props);
+    if (currency !== 'USD') log.warning(`  💱 Fiverr returned prices in ${currency} (rate ${currencyRate}) — converting to USD`);
     totalAvailable = pag.total;
 
     if (!gigs.length) {
@@ -107,7 +110,7 @@ for (let page = startPage; page < startPage + maxPages; page++) {
         seen.add(id);
         const position = skipPromoted ? ++organicPos : (page - 1) * pag.pageSize + i + 1;
         items.push(flattenGig(g, position, {
-            includeSellerDetails, includePricing, includePerformance, includeGallery, currency,
+            includeSellerDetails, includePricing, includePerformance, includeGallery, currency, currencyRate,
         }));
     });
 

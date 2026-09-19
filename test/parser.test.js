@@ -8,12 +8,14 @@ const props = extractProps(html);
 const gigs = getGigs(props);
 assert.equal(gigs.length, 48);
 assert.equal(getPagination(props).pageSize, 48);
-assert.equal(getCurrency(props), 'USD');
+assert.equal(getCurrency(props).name, 'USD');
 const rec = flattenGig(gigs[5], 6, { includeGallery: true, currency: 'USD' });
 assert.ok(rec.id && rec.title && rec.url.startsWith('https://www.fiverr.com/'));
 assert.ok(rec.seller_username && rec.seller_rating_score > 0);
 assert.ok(rec.starting_price > 0 && rec.delivery_days > 0);
-assert.ok(Array.isArray(rec.gallery_images));
+assert.ok(Array.isArray(rec.gallery));
+const brl = flattenGig(gigs[5], 6, { currency: 'BRL', currencyRate: 5.4 });
+assert.equal(brl.currency, 'USD'); assert.ok(brl.starting_price < gigs[5].price_i); assert.equal(brl.original_currency, 'BRL');
 const promoted = gigs.filter((g) => g.type === 'promoted_gigs').length;
 console.log(`✅ parser OK — 48 gigs, ${promoted} promoted, sample:`, JSON.stringify(rec, null, 1).slice(0, 600));
 assert.equal(buildUrl({ query: 'logo design', page: 2, sortBy: 'rating' }),

@@ -40,7 +40,8 @@ export function getPagination(props) {
 }
 
 export function getCurrency(props) {
-    return props?.requestContext?.currency?.name ?? props?.currency?.name ?? 'USD';
+    const c = props?.requestContext?.currency ?? props?.currency ?? {};
+    return { name: c.name ?? 'USD', rate: Number(c.rate) || 1 };
 }
 
 const abs = (u) => (u && u.startsWith('/') ? `https://www.fiverr.com${u}` : u ?? null);
@@ -52,12 +53,19 @@ export function flattenGig(g, position, opts = {}) {
         includePerformance = true,
         includeGallery = false,
         currency = 'USD',
+        currencyRate = 1,
     } = opts;
 
     const assets = Array.isArray(g.assets) ? g.assets : [];
     const samples = Array.isArray(g.filtered_delivery_attachments) ? g.filtered_delivery_attachments : [];
     const pkg = g.packages?.recommended ?? {};
     const rating = g.seller_rating ?? {};
+    const toUsd = (v) => (v == null ? null : (currency === 'USD' || !currencyRate ? v : Math.round((v / currencyRate) * 100) / 100));
+
+    // metadata: [{type:'style',value:[..]},{type:'file_format',value:[..]}] -> object + flat tag string
+    const metadata = {};
+    for (const m of g.metadata ?? []) if (m?.type && Array.isArray(m.value) && m.value.length) metadata[m.type] = m.value;
+    const tags = Object.values(metadata).flat().join(', ');
 
     const rec = {
         id: g.gig_id ?? g.gigId ?? g.pk_i ?? null,
@@ -65,71 +73,77 @@ export function flattenGig(g, position, opts = {}) {
         url: abs(g.gig_url),
         slug: g.cached_slug ?? null,
         thumbnail: assets.find((a) => a.cloud_img_main_gig)?.cloud_img_main_gig ?? null,
-        category_id: g.category_id ?? null,
-        subcategory_id: g.sub_category_id ?? null,
-        nested_subcategory_id: g.nested_sub_category_id ?? null,
     };
 
     if (includeSellerDetails) {
         Object.assign(rec, {
             seller_id: g.seller_id != null ? Number(g.seller_id) : null,
             seller_username: g.seller_name ?? null,
-            seller_displayName: g.seller_display_name ?? null,
-            seller_country: g.seller_country ?? null,
-            seller_img: g.seller_img ?? null,
+            seller_displayName: g.seller_display_name ?? g.seller_name ?? null,
+            seller_profileImage: g.seller_img ?? null,
             seller_url: abs(g.seller_url) ?? (g.seller_name ? `https://www.fiverr.com/${g.seller_name}` : null),
-            seller_isOnline: g.seller_online ?? null,
-            seller_isPro: g.is_pro ?? null,
-            seller_level: g.seller_level ?? null,
-            seller_languages: (g.seller_languages ?? [])
-                .map((l) => `${l.code} (Level ${l.level})`).join(', '),
-            seller_rating_score: rating.score ?? null,
-            seller_rating_count: rating.count ?? null,
-            seller_unavailable: g.is_seller_unavailable ?? null,
+            seller_country: g.seller_country ?? null,
+            seller_isOnline: Boolean(g.seller_online),
+            seller_isPro: Boolean(g.is_pro),
+            seller_level: g.seller_level || 'new_seller',
+            seller_languages: (g.seller_languages ?? []).map((l) => `${l.code} (Level ${l.level})`).join(', '),
+            seller_rating_score: rating.score ?? 0,
+            seller_rating_count: rating.count ?? 0,
         });
     }
 
     if (includePricing) {
+        const price = g.price_i ?? pkg.price ?? null;
         Object.assign(rec, {
-            starting_price: g.price_i ?? pkg.price ?? null,
-            currency,
+            starting_price: toUsd(price),
+            currency: 'USD',
             recommended_package_id: pkg.id ?? null,
-            recommended_package_type: pkg.type ?? null,
+            recommended_package_price: toUsd(pkg.price ?? price),
             delivery_days: pkg.duration ?? null,
-            extra_fast: pkg.extra_fast ?? null,
+            has_extra_fast: Boolean(pkg.extra_fast ?? g.extra_fast),
+            package_tier: g.package_i ?? pkg.id ?? null,
+            package_type: pkg.type ?? null,
             total_packages: g.num_of_packages ?? null,
-            hourly_rate_cents: g.hourly_rate ?? null,
+            hourly_rate: g.hourly_rate ? toUsd(g.hourly_rate / 100) : null,
         });
+        if (currency !== 'USD') { rec.original_currency = currency; rec.original_price = price; }
     }
 
     if (includePerformance) {
         Object.assign(rec, {
             position,
-            listing_type: g.type ?? 'gigs',
+            listing_type: g.type ?? 'organic',
             is_promoted: g.type === 'promoted_gigs',
-            auction_id: g.auction?.id ?? null,
             impression_id: g.impressionId ?? g.uuid ?? null,
-            isFiverrChoice: g.is_fiverr_choice ?? false,
-            isFeatured: g.is_featured ?? false,
-            buying_rating: g.buying_review_rating ?? null,
-            buying_review_count: g.buying_review_rating_count ?? null,
+            isFiverrChoice: Boolean(g.is_fiverr_choice),
+            isFeatured: Boolean(g.is_featured),
+            buying_rating: g.buying_review_rating ?? 0,
+            buying_review_count: g.buying_review_rating_count ?? 0,
         });
     }
 
     Object.assign(rec, {
-        offerConsultation: g.offer_consultation ?? null,
+        category_id: g.category_id ?? null,
+        subcategory_id: g.sub_category_id ?? null,
+        nested_subcategory_id: g.nested_sub_category_id || null,
+        isSellerUnavailable: Boolean(g.is_seller_unavailable),
+        offerConsultation: Boolean(g.offer_consultation),
+        hasRecurringOptions: Boolean(g.has_recurring_option),
+        isPersonalizedPricingEnabled: !g.personalized_pricing_fail,
         hasVideoIntro: assets.some((a) => a.type === 'VideoAsset'),
         hasWorkSamples: samples.length > 0,
-        hasRecurringOption: g.has_recurring_option ?? null,
-        personalizedPricingFail: g.personalized_pricing_fail ?? null,
-        style_tags: (g.metadata ?? []).filter((m) => m.type === 'style').flatMap((m) => m.value ?? []),
     });
 
     if (includeGallery) {
-        rec.gallery_images = assets.map((a) => a.cloud_img_main_gig).filter(Boolean);
+        rec.gallery = assets.map((a) => a.cloud_img_main_gig).filter(Boolean);
+        rec.gallery_count = rec.gallery.length;
         rec.work_samples = samples.map((a) => a.image_url).filter(Boolean);
+    } else {
+        rec.gallery_count = assets.filter((a) => a.cloud_img_main_gig).length;
     }
-
+    rec.attachments_count = samples.length;
+    rec.tags = tags;
+    rec.metadata = metadata;
     rec.scraped_at = new Date().toISOString();
     return rec;
 }
