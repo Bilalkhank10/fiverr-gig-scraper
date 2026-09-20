@@ -41,6 +41,8 @@ Extract Fiverr gig data for any keyword in seconds. Searches Fiverr like a buyer
 | `skipPromoted` | bool | false | Drop paid ads, keep organic ranking |
 | `dedupeGigs` | bool | false | Fiverr shows a gig twice (ad + organic). OFF = all 48 slots/page, ON = unique gigs only |
 | `maxItems` | int | 0 | Stop after N gigs (cost control) |
+| `fetchVia` | enum | `auto` | `auto` (direct → Jina fallback), `direct`, `jina` (all via r.jina.ai — works without proxy) |
+| `jinaApiKey` | string | – | Optional free key from jina.ai for higher rate limits |
 | `proxyConfiguration` | object | Apify RESIDENTIAL | Recommended for reliability |
 | `delayMs` | int | 2000 | Delay between pages |
 

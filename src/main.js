@@ -26,6 +26,8 @@ const {
     dedupeGigs = false,
     maxItems = 0,
     delayMs = 2000,
+    fetchVia = 'auto',
+    jinaApiKey = '',
     proxyConfiguration = { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] },
 } = input;
 
@@ -45,8 +47,19 @@ const HEADERS = {
     'upgrade-insecure-requests': '1',
 };
 
+// Fetch through Jina AI Reader (r.jina.ai) — their servers fetch the page, bypassing IP-based blocks.
+async function fetchViaJina(url, attempt = 0) {
+    const headers = { 'X-Return-Format': 'html', 'X-No-Cache': 'true', 'X-Set-Cookie': 'currency=USD' };
+    if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
+    const res = await gotScraping({ url: `https://r.jina.ai/${url}`, headers, timeout: { request: 90_000 }, retry: { limit: 0 }, throwHttpErrors: false });
+    if (res.statusCode === 200 && res.body.includes('perseus-initial-props')) return res.body;
+    if (attempt < 2) { await sleep(2000 * (attempt + 1)); return fetchViaJina(url, attempt + 1); }
+    throw new Error(`Jina HTTP ${res.statusCode}`);
+}
+
 async function fetchPage(url, attempt = 0) {
-    const MAX_ATTEMPTS = 5;
+    if (fetchVia === 'jina') return fetchViaJina(url);
+    const MAX_ATTEMPTS = fetchVia === 'auto' ? 3 : 5;
     const sessionId = `s${Math.random().toString(36).slice(2, 10)}`; // new IP each try
     const proxyUrl = proxyConf ? await proxyConf.newUrl(sessionId) : undefined;
     try {
@@ -69,7 +82,10 @@ async function fetchPage(url, attempt = 0) {
         const why = isBlocked(html) ? 'PerimeterX block' : `HTTP ${res.statusCode}`;
         throw new Error(why);
     } catch (err) {
-        if (attempt + 1 >= MAX_ATTEMPTS) throw err;
+        if (attempt + 1 >= MAX_ATTEMPTS) {
+            if (fetchVia === 'auto') { log.info(`  🔁 direct blocked (${err.message}) → falling back to Jina Reader`); return fetchViaJina(url); }
+            throw err;
+        }
         const wait = 1500 * (attempt + 1);
         log.warning(`  ⚠️  ${err.message} — retry ${attempt + 1}/${MAX_ATTEMPTS - 1} in ${wait} ms`);
         await sleep(wait);

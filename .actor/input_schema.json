@@ -160,11 +160,44 @@
       "default": 0,
       "minimum": 0
     },
+    "delayMs": {
+      "title": "Delay between pages (ms) ⏱️",
+      "type": "integer",
+      "editor": "number",
+      "description": "Politeness delay between page requests.",
+      "default": 2000,
+      "minimum": 0
+    },
+    "fetchVia": {
+      "title": "Fetch method 🌐",
+      "type": "string",
+      "editor": "select",
+      "sectionCaption": "🌐 Network",
+      "description": "direct = your proxy only. jina = every page via Jina AI Reader (r.jina.ai, free ~20 req/min without key, more with key; no proxy needed). auto = direct first, Jina as fallback when blocked.",
+      "default": "auto",
+      "enum": [
+        "auto",
+        "direct",
+        "jina"
+      ],
+      "enumTitles": [
+        "Auto (direct → Jina fallback)",
+        "Direct / proxy only",
+        "Jina AI Reader only"
+      ]
+    },
+    "jinaApiKey": {
+      "title": "Jina API key (optional) 🔑",
+      "type": "string",
+      "editor": "textfield",
+      "isSecret": true,
+      "description": "Free key from jina.ai raises the rate limit (200+ req/min). Leave empty for anonymous access.",
+      "nullable": true
+    },
     "proxyConfiguration": {
       "title": "Proxy configuration 🌐",
       "type": "object",
       "editor": "proxy",
-      "sectionCaption": "🌐 Proxy",
       "description": "Fiverr is protected by PerimeterX. Apify RESIDENTIAL proxies are strongly recommended.",
       "default": {
         "useApifyProxy": true,
@@ -178,14 +211,6 @@
           "RESIDENTIAL"
         ]
       }
-    },
-    "delayMs": {
-      "title": "Delay between pages (ms) ⏱️",
-      "type": "integer",
-      "editor": "number",
-      "description": "Politeness delay between page requests.",
-      "default": 2000,
-      "minimum": 0
     }
   },
   "required": []
