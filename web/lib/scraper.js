@@ -279,22 +279,24 @@ export async function runScrape(input, { onEvent = () => {}, signal } = {}) {
                     const cur = props ? getCurrency(props) : { name: 'USD', rate: 1 };
                     const detail = parseGigDetail(html, { currency: cur.name, currencyRate: cur.rate, maxReviews });
                     if (!detail) throw new Error('gig data not found in page');
-                    // Listing identity always wins over the detail page (and, offline, it keeps a
-                    // replayed fixture honest: the fixture's own gig identity is never faked).
+                    // Detail wins on shared fields (like the actor), then listing identity/flags are
+                    // restored so a merged row keeps its search context — and, offline, so a replayed
+                    // fixture never fakes the gig it was matched with.
                     const out = job.listing
                         ? {
+                            ...job.listing,
                             ...detail,
-                            id: job.listing.id, title: job.listing.title, url: job.listing.url, slug: job.listing.slug,
+                            id: job.listing.id,
+                            title: job.listing.title,
+                            url: job.listing.url,
+                            slug: job.listing.slug,
                             thumbnail: job.listing.thumbnail ?? detail.gallery?.[0]?.thumbnail ?? null,
                             starting_price: job.listing.starting_price ?? detail.price_min,
                             delivery_days: job.listing.delivery_days ?? detail.packages?.[0]?.delivery_days ?? null,
-                            position: job.listing.position, is_promoted: job.listing.is_promoted,
-                            listing_type: job.listing.listing_type, impression_id: job.listing.impression_id,
-                            seller_username: job.listing.seller_username ?? detail.seller?.username,
-                            seller_country: job.listing.seller_country ?? detail.seller?.country,
-                            seller_level: job.listing.seller_level ?? detail.seller?.level,
-                            seller_rating_score: job.listing.seller_rating_score ?? detail.seller?.rating,
-                            seller_rating_count: job.listing.seller_rating_count ?? detail.seller?.rating_count,
+                            position: job.listing.position,
+                            is_promoted: job.listing.is_promoted,
+                            listing_type: job.listing.listing_type,
+                            impression_id: job.listing.impression_id,
                             dataset_index: job.listing.dataset_index,
                             seller: {
                                 ...detail.seller,

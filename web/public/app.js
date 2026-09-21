@@ -223,6 +223,19 @@ function toggle(label, key, onchange) {
 /* ================================ router ================================= */
 const view = () => document.getElementById('view');
 
+/**
+ * Async views are guarded by a render token: every navigation bumps it, so a slow render
+ * can never keep writing into a view the user already left (that used to leave a duplicated
+ * run console — and two competing SSE streams — behind on fast navigation).
+ */
+let renderToken = 0;
+/**
+ * Per-invocation guard. The token is captured by value, so if a newer navigation (or a second
+ * render of the same hash) happened while this render was awaiting data, the guard goes stale
+ * and the render stops touching the DOM — no duplicated consoles, no orphaned SSE streams.
+ */
+const viewGuard = (el, token) => () => Boolean(el) && document.getElementById('view') === el && token === renderToken;
+
 function route() {
     const hash = location.hash.replace(/^#\/?/, '') || 'overview';
     const [name, param] = hash.split('/');
@@ -231,18 +244,21 @@ function route() {
     document.querySelectorAll('.nav-item').forEach((a) => a.classList.toggle('active', a.dataset.route === (key === 'job' ? 'jobs' : key)));
     document.getElementById('crumbTitle').textContent = VIEWS[key] ?? 'Overview';
     const el = clear(view());
+    const token = ++renderToken;
+    el.dataset.token = String(token);
     el.classList.remove('entering');
     void el.offsetWidth;
     el.classList.add('entering');
     window.scrollTo({ top: 0, behavior: 'instant' });
     const render = { overview: renderOverview, new: renderNewRun, jobs: renderJobs, job: renderJobConsole, results: renderResults, api: renderApi, about: renderAbout }[key] ?? renderOverview;
-    render(el, param);
+    render(el, param, token);
 }
 
 window.addEventListener('hashchange', route);
 
 /* =============================== overview ================================ */
-async function renderOverview(root) {
+async function renderOverview(root, _param, token) {
+    const current = viewGuard(root, token);
     root.append(h('div', { class: 'page-head' },
         h('div', {},
             h('div', { class: 'eyebrow' }, 'Fiverr gig intelligence'),
@@ -274,12 +290,13 @@ async function renderOverview(root) {
 
     try {
         state.runs = (await api.runs()).runs;
+        if (!current()) return;
         document.getElementById('jobCount').textContent = state.runs.length;
-        const done = state.runs.filter((r) => r.gigs);
         const totalGigs = state.runs.reduce((a, r) => a + (r.gigs ?? 0), 0);
         const latest = state.runs.find((r) => r.gigs > 0);
         let latestStats = null;
         if (latest) latestStats = (await api.run(latest.id)).stats;
+        if (!current()) return;
 
         kpis.append(
             statTile({ label: 'Gigs scraped', value: compact(totalGigs), iconName: 'layers', sub: `${state.runs.length} run${state.runs.length === 1 ? '' : 's'} recorded`, accent: true }),
@@ -616,14 +633,15 @@ async function startRun() {
 }
 
 /* ================================= jobs ================================== */
-async function renderJobs(root) {
+async function renderJobs(root, _param, token) {
+    const current = viewGuard(root, token);
     root.append(h('div', { class: 'page-head' },
         h('div', {},
             h('div', { class: 'eyebrow' }, 'History'),
             h('h1', {}, 'Jobs'),
             h('p', { class: 'sub' }, 'Every run the studio has executed, newest first. Click a job to reopen its console, logs and dataset.')),
         h('span', { class: 'spacer' }),
-        h('button', { class: 'ghost', onclick: () => { renderJobs(clear(view())); } }, icon('clock'), 'Refresh'),
+        h('button', { class: 'ghost', onclick: () => { route(); } }, icon('clock'), 'Refresh'),
         h('button', { class: 'primary', onclick: () => { location.hash = '#/new'; } }, icon('bolt'), 'New run')));
 
     const list = h('div', { class: 'stack' });
@@ -631,6 +649,7 @@ async function renderJobs(root) {
 
     try {
         state.runs = (await api.runs()).runs;
+        if (!current()) return;
         document.getElementById('jobCount').textContent = state.runs.length;
         if (!state.runs.length) {
             list.append(emptyState({ iconName: 'layers', title: 'No jobs yet', body: 'Start a scrape and it will show up here with live logs and its dataset.', action: h('button', { class: 'primary', onclick: () => { location.hash = '#/new'; } }, icon('bolt'), 'Create the first run') }));
@@ -657,7 +676,7 @@ async function renderJobs(root) {
                     h('span', { class: 'spacer' }),
                     h('button', { class: 'ghost sm', onclick: (e) => { e.stopPropagation(); location.hash = `#/results/${r.id}`; } }, icon('grid', 'sm'), 'Dataset'),
                     h('a', { class: 'ghost sm', href: `/api/runs/${r.id}/export?format=csv`, onclick: (e) => e.stopPropagation() }, icon('download', 'sm'), 'CSV'),
-                    h('button', { class: 'danger-btn sm', onclick: async (e) => { e.stopPropagation(); await api.remove(r.id); toast('Run deleted'); renderJobs(clear(view())); } }, icon('x', 'sm'), 'Delete')));
+                    h('button', { class: 'danger-btn sm', onclick: async (e) => { e.stopPropagation(); await api.remove(r.id); toast('Run deleted'); route(); } }, icon('x', 'sm'), 'Delete')));
             list.append(card);
         }
     } catch (err) {
@@ -671,14 +690,17 @@ const miniStat = (label, value) => h('div', { style: { display: 'flex', flexDire
 /* ============================== run console ============================== */
 let activeStream = null;
 
-async function renderJobConsole(root, id) {
+async function renderJobConsole(root, id, token) {
+    const current = viewGuard(root, token);
     if (activeStream) { activeStream.close(); activeStream = null; }
     root.append(h('div', { class: 'row', style: { marginBottom: '18px' } }, h('span', { class: 'skeleton', style: { width: '260px', height: '30px' } })));
 
     let run;
     try {
         run = await api.run(id);
+        if (!current()) return;
     } catch {
+        if (!current()) return;
         clear(root).append(emptyState({ iconName: 'layers', title: 'Run not found', body: 'It may have been deleted or trimmed from history.', action: h('button', { class: 'soft', onclick: () => { location.hash = '#/jobs'; } }, 'Back to jobs') }));
         return;
     }
@@ -754,19 +776,108 @@ async function renderJobConsole(root, id) {
         legendRow('#57b6ff', 'Sellers online', 'online'),
         legendRow('#f7c948', "Fiverr's choice", 'choice')));
 
-    function paintStream() {
+    /* ---------------------- results stream (animated) ---------------------- */
+    const STREAM_MAX = 12;
+    const streamGrid = h('div', { class: 'stream-grid' });
+    const streamCount = h('b', { class: 'stream-count num' }, '0');
+    const streamLive = h('span', { class: 'live-chip' }, h('span', { class: 'live-dot' }), 'live');
+    const streamBar = h('div', { class: 'stream-bar' }, h('span'));
+    let lastCount = -1;
+
+    const streamHead = h('div', { class: 'row wrap stream-head' },
+        h('div', { class: 'card-title' }, icon('grid'), 'Results stream'),
+        streamLive,
+        h('span', { class: 'stream-tally' }, streamCount, h('span', { class: 'tiny faint' }, 'gigs in dataset')),
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'ghost sm', onclick: () => { location.hash = `#/results/${id}`; } }, icon('table', 'sm'), 'Explore all'));
+
+    /** Pop the counter whenever the number of streamed gigs changes. */
+    function paintCount({ animate = true } = {}) {
+        if (liveItems.length === lastCount) return;
+        lastCount = liveItems.length;
+        streamCount.textContent = num(liveItems.length);
+        if (animate && renderCount) {
+            streamCount.classList.remove('pop');
+            void streamCount.offsetWidth;
+            streamCount.classList.add('pop');
+        }
+    }
+    const renderCount = true;
+
+    /** Live chrome: pulsing dot, sweep bar and accent glow while gigs are still arriving. */
+    let runFinished = run.status !== 'running';
+    function setStreaming(on) {
+        const live = Boolean(on) && !runFinished;
+        streamLive.classList.toggle('off', !live);
+        streamGrid.classList.toggle('busy', live);
+        streamBar.classList.toggle('hidden', !live);
+    }
+
+    function paintStream({ animate = false } = {}) {
         clear(streamHost);
         if (!liveItems.length) {
-            streamHost.append(h('div', { class: 'card pad' }, h('div', { class: 'card-title' }, icon('grid'), 'Results stream'), emptyState({ iconName: 'grid', title: 'Waiting for the first gigs…', body: 'Parsed gigs appear here the moment they land in the dataset.' })));
+            streamHost.append(h('div', { class: 'card pad' },
+                h('div', { class: 'card-title' }, icon('grid'), 'Results stream'),
+                emptyState({ iconName: 'grid', title: 'Waiting for the first gigs…', body: 'Parsed gigs appear here the moment they land in the dataset.' })));
             return;
         }
-        const shown = liveItems.slice(-12).reverse();
-        streamHost.append(h('div', { class: 'row' },
-            h('div', { class: 'card-title' }, icon('grid'), `Results stream · ${num(liveItems.length)} gigs`),
-            h('span', { class: 'spacer' }),
-            h('button', { class: 'ghost sm', onclick: () => { location.hash = `#/results/${id}`; } }, icon('table', 'sm'), 'Explore all')));
-        streamHost.append(h('div', { class: 'stream-grid' }, ...shown.map((it, i) => gigCard(it, { index: liveItems.length - i - 1, compactMode: true }))));
-        spotlight(streamHost);
+        const shown = liveItems.slice(-STREAM_MAX).reverse();
+        setStreaming(!runFinished);
+        paintCount({ animate: false });
+        clear(streamGrid);
+        shown.forEach((it, i) => {
+            const card = streamCard(it, liveItems.length - i - 1);
+            if (animate) { card.style.animationDelay = `${i * 45}ms`; }
+            streamGrid.append(card);
+        });
+        streamHost.append(streamHead, streamBar, streamGrid);
+        spotlight(streamGrid);
+    }
+
+    /** One streamed gig card, wrapped with the entry animation classes. */
+    function streamCard(item, index, { fresh = false } = {}) {
+        const card = gigCard(item, { index, compactMode: true });
+        card.classList.add('stream-card');
+        if (fresh) card.classList.add('fresh');
+        return card;
+    }
+
+    /** FLIP: let existing cards glide to their new grid slots instead of jumping. */
+    function flipReorder(mutate) {
+        const kids = [...streamGrid.children];
+        const before = new Map(kids.map((el) => [el, el.getBoundingClientRect()]));
+        mutate();
+        for (const el of kids) {
+            if (!el.isConnected) continue;
+            const a = before.get(el);
+            const b = el.getBoundingClientRect();
+            const dx = a.left - b.left;
+            const dy = a.top - b.top;
+            if (!dx && !dy) continue;
+            el.style.transition = 'none';
+            el.style.transform = `translate(${dx}px, ${dy}px)`;
+            void el.offsetWidth;
+            requestAnimationFrame(() => {
+                el.classList.add('flip');
+                el.style.transition = '';
+                el.style.transform = '';
+                setTimeout(() => el.classList.remove('flip'), 520);
+            });
+        }
+    }
+
+    function renderStreamItem(item) {
+        if (!streamGrid.isConnected) { paintStream({ animate: true }); return; }
+        flipReorder(() => {
+            streamGrid.prepend(streamCard(item, liveItems.length - 1, { fresh: true }));
+            const extras = [...streamGrid.children].slice(STREAM_MAX);
+            extras.forEach((el) => {
+                el.classList.add('leaving');
+                setTimeout(() => el.remove(), 340);
+            });
+        });
+        paintCount();
+        spotlight(streamGrid);
     }
 
     function paintInsights() {
@@ -792,8 +903,9 @@ async function renderJobConsole(root, id) {
         insightHost.append(priceCard, donutCard);
     }
 
-    paintStream();
+    paintStream({ animate: true });
     paintInsights();
+    if (run.status === 'running') setStreaming(true);
 
     const time = (ts) => new Date(ts).toLocaleTimeString('en-US', { hour12: false });
     function logLine(msg, at) {
@@ -814,6 +926,9 @@ async function renderJobConsole(root, id) {
         if (draining) return;
         draining = true;
         const step = () => {
+            // once the run ends the dataset becomes the source of truth: drop whatever is
+            // still queued so the counter and the cards stay consistent with the API
+            if (runFinished) { pending.length = 0; draining = false; return; }
             const next = pending.shift();
             if (!next) { draining = false; return; }
             liveItems.push(next);
@@ -822,19 +937,9 @@ async function renderJobConsole(root, id) {
         };
         step();
     }
-    function renderStreamItem(item) {
-        // lightweight: append to the live grid without a full repaint
-        const grid = streamHost.querySelector('.stream-grid');
-        if (!grid) { paintStream(); return; }
-        grid.prepend(gigCard(item, { index: liveItems.length - 1, compactMode: true }));
-        while (grid.children.length > 12) grid.lastElementChild.remove();
-        const title = streamHost.querySelector('.card-title');
-        if (title) title.lastChild.textContent = `Results stream · ${num(liveItems.length)} gigs`;
-        spotlight(grid);
-    }
-
     function refreshCounters() {
         paintKpis();
+        paintCount();
         ringHost.querySelectorAll('.ring-legend .l').forEach((row) => {
             const k = row.dataset.k;
             row.querySelector('b').textContent = {
@@ -863,7 +968,7 @@ async function renderJobConsole(root, id) {
                 progressLine.textContent = progressText();
                 refreshCounters();
             }
-            if (ev.type === 'item') { pending.push(ev.item); drain(); refreshCounters(); }
+            if (ev.type === 'item') { if (runFinished) return; pending.push(ev.item); drain(); refreshCounters(); }
             if (ev.type === 'end') {
                 es.close();
                 activeStream = null;
@@ -881,10 +986,13 @@ async function renderJobConsole(root, id) {
     }
 
     async function finish(status, error) {
+        runFinished = true;
+        pending.length = 0;
         clear(statusEl).append(statusBadge(status));
         cancelBtn.remove();
         if (error) logLine(`❌ ${error}`);
         const fresh = await api.run(id).catch(() => null);
+        if (!current()) { activeStream?.close?.(); activeStream = null; return; }
         if (fresh) {
             liveItems = fresh.items ?? liveItems;
             liveStats = fresh.stats ?? liveStats;
@@ -893,8 +1001,9 @@ async function renderJobConsole(root, id) {
         }
         clear(kpiRow);
         paintKpis();
+        setStreaming(false);
         refreshCounters();
-        paintStream();
+        paintStream({ animate: true });
         paintInsights();
         progressLine.textContent = `${STATUS[status]?.label ?? status} · ${duration((fresh?.finishedAt ?? Date.now()) - run.startedAt)}`;
         toast(status === 'succeeded' ? `Run finished — ${num(liveItems.length)} gigs` : `Run ${status}`, status === 'succeeded' ? 'ok' : 'err');
@@ -906,7 +1015,8 @@ const legendRow = (color, label, key) => h('div', { class: 'l', dataset: { k: ke
     h('span', { class: 'dot-i', style: { background: color } }), h('span', {}, label), h('b', {}, '—'));
 
 /* ================================ dataset ================================ */
-async function renderResults(root, runId) {
+async function renderResults(root, runId, token) {
+    const current = viewGuard(root, token);
     const header = h('div', { class: 'page-head' },
         h('div', {},
             h('div', { class: 'eyebrow' }, 'Dataset explorer'),
@@ -922,6 +1032,7 @@ async function renderResults(root, runId) {
 
     try {
         state.runs = (await api.runs()).runs;
+        if (!current()) return;
         document.getElementById('jobCount').textContent = state.runs.length;
         const withItems = state.runs.filter((r) => r.gigs > 0);
         state.datasetRunId = runId ?? state.datasetRunId ?? withItems[0]?.id ?? state.runs[0]?.id;
@@ -931,17 +1042,18 @@ async function renderResults(root, runId) {
             return;
         }
 
-        const runSelect = h('select', { style: { maxWidth: '420px' }, onchange: (e) => { state.datasetRunId = e.target.value; state.limit = 24; renderResults(clear(view())); } },
+        const runSelect = h('select', { style: { maxWidth: '420px' }, onchange: (e) => { state.datasetRunId = e.target.value; state.limit = 24; route(); } },
             ...state.runs.map((r) => h('option', { value: r.id, selected: r.id === state.datasetRunId }, `${timeAgo(r.startedAt)} · ${truncate(r.query, 34)} · ${r.gigs} gigs · ${r.status}`)));
         const searchInput = h('input', {
             type: 'text', value: state.filter, placeholder: 'Filter by title, seller, country, tag…', style: { maxWidth: '320px' },
             oninput: (e) => { state.filter = e.target.value; state.limit = 24; renderBody(); },
         });
         const viewToggle = h('div', { class: 'seg' },
-            h('button', { class: state.resultsView === 'cards' ? 'active' : '', onclick: () => { state.resultsView = 'cards'; localStorage.setItem('view.mode', 'cards'); renderResults(clear(view())); } }, icon('grid', 'sm'), 'Cards'),
-            h('button', { class: state.resultsView === 'table' ? 'active' : '', onclick: () => { state.resultsView = 'table'; localStorage.setItem('view.mode', 'table'); renderResults(clear(view())); } }, icon('table', 'sm'), 'Table'));
+            h('button', { class: state.resultsView === 'cards' ? 'active' : '', onclick: () => { state.resultsView = 'cards'; localStorage.setItem('view.mode', 'cards'); route(); } }, icon('grid', 'sm'), 'Cards'),
+            h('button', { class: state.resultsView === 'table' ? 'active' : '', onclick: () => { state.resultsView = 'table'; localStorage.setItem('view.mode', 'table'); route(); } }, icon('table', 'sm'), 'Table'));
 
         const run = await api.run(state.datasetRunId);
+        if (!current()) return;
         state.dataset = run;
         const items = run.items ?? [];
         const counter = document.getElementById('datasetCount');
@@ -985,7 +1097,7 @@ async function renderResults(root, runId) {
                 .map(([key, label]) => h('button', {
                     class: `chip click ${state.quickFilters.has(key) ? 'on' : ''}`, style: state.quickFilters.has(key) ? { borderColor: 'var(--accent-line)', color: 'var(--accent)' } : null,
                     title: 'Toggle filter',
-                    onclick: () => { state.quickFilters.has(key) ? state.quickFilters.delete(key) : state.quickFilters.add(key); state.limit = 24; renderResults(clear(view())); },
+                    onclick: () => { state.quickFilters.has(key) ? state.quickFilters.delete(key) : state.quickFilters.add(key); state.limit = 24; route(); },
                 }, label)));
         clear(quickHost).append(quick);
 
@@ -1008,7 +1120,7 @@ async function renderResults(root, runId) {
             clear(body);
             body.append(h('div', { class: 'row', style: { marginBottom: '12px' } },
                 h('span', { class: 'sm-text muted' }, `${num(rows.length)} of ${num(items.length)} gigs`),
-                state.filter || state.quickFilters.size ? h('button', { class: 'ghost sm', onclick: () => { state.filter = ''; state.quickFilters.clear(); renderResults(clear(view())); } }, icon('x', 'sm'), 'Clear filters') : null));
+                state.filter || state.quickFilters.size ? h('button', { class: 'ghost sm', onclick: () => { state.filter = ''; state.quickFilters.clear(); route(); } }, icon('x', 'sm'), 'Clear filters') : null));
 
             if (!rows.length) {
                 body.append(emptyState({ iconName: 'search', title: 'No gigs match', body: 'Try a different search term or clear the quick filters.' }));
