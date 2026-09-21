@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fiverr Gig Studio — Scraper Console</title>
+<meta name="description" content="Premium control room for the Fiverr Search Gig Scraper actor." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2319c37d'/%3E%3Cpath d='M10 22V10h12M10 16h9' stroke='%23071410' stroke-width='2.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="aurora" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+<div class="grain" aria-hidden="true"></div>
+
+<svg class="sprite" aria-hidden="true">
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 13.5 15.5 10M3.6 18a9 9 0 1 1 16.8 0" stroke-linecap="round"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke-linecap="round"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="m7 10 2.5 2.5L7 15M12.5 15H17" stroke-linecap="round"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M19 19v2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4 19h16" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" stroke-linejoin="round"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 13 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2" stroke-linecap="round"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.1 8.1-7.5 9.5-4.4-1.4-7.5-4.9-7.5-9.5V6L12 3Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9L12 3.6Z" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M15 6.5V5.5A2.5 2.5 0 0 0 12.5 3h-7A2.5 2.5 0 0 0 3 5.5v7A2.5 2.5 0 0 0 5.5 15h1"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8.5 8.5M19 14.5V18a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 18V7.5A2.5 2.5 0 0 1 6 5h3.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M9 9.5V20"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0" stroke-linecap="round"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.3 3.6 8.5S14.4 18.1 12 20.5C9.6 18.1 8.4 15.2 8.4 12S9.6 5.9 12 3.5Z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M11.5 3.5H20v8.5l-9.3 9.3a2 2 0 0 1-2.8 0l-5.7-5.7a2 2 0 0 1 0-2.8l9.3-9.3Z"/><circle cx="16.2" cy="7.8" r="1.4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><circle cx="8.6" cy="10" r="1.7"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4.5V5.5Z" stroke-linejoin="round"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4.5M5 5h10.5l-1 3.5 1 3.5H5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><span></span></div>
+      <div class="brand-text">
+        <strong>Gig Studio</strong>
+        <small>fiverr-gig-scraper</small>
+      </div>
+      <button class="icon-btn only-mobile" id="closeNav" title="Close"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+
+    <nav class="nav" id="nav">
+      <a class="nav-item" data-route="overview" href="#/overview"><svg class="i"><use href="#i-gauge"/></svg><span>Overview</span></a>
+      <a class="nav-item" data-route="new" href="#/new"><svg class="i"><use href="#i-spark"/></svg><span>New run</span></a>
+      <a class="nav-item" data-route="jobs" href="#/jobs"><svg class="i"><use href="#i-layers"/></svg><span>Jobs</span><em class="count" id="jobCount">0</em></a>
+      <a class="nav-item" data-route="results" href="#/results"><svg class="i"><use href="#i-grid"/></svg><span>Dataset</span><em class="count" id="datasetCount">0</em></a>
+      <div class="nav-label">Developer</div>
+      <a class="nav-item" data-route="api" href="#/api"><svg class="i"><use href="#i-terminal"/></svg><span>API &amp; deploy</span></a>
+      <a class="nav-item" data-route="about" href="#/about"><svg class="i"><use href="#i-book"/></svg><span>Readme</span></a>
+    </nav>
+
+    <div class="side-foot">
+      <button class="conn" id="connChip" title="Check connectivity to Fiverr / Jina">
+        <span class="dot" id="connDot"></span>
+        <span class="conn-text"><strong id="connLabel">Checking…</strong><small id="connSub">network probe</small></span>
+      </button>
+      <div class="side-actions">
+        <button class="ghost sm" id="themeBtn"><svg class="i"><use href="#i-moon"/></svg><span>Theme</span></button>
+        <a class="ghost sm" href="https://github.com/Bilalkhank10/fiverr-gig-scraper" target="_blank" rel="noopener"><svg class="i"><use href="#i-external"/></svg><span>GitHub</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="openNav"><svg class="i"><use href="#i-grid"/></svg></button>
+      <div class="crumbs">
+        <span class="pill-soft" id="crumbRoot">Studio</span>
+        <svg class="i sep"><use href="#i-chevron"/></svg>
+        <strong id="crumbTitle">Overview</strong>
+      </div>
+      <div class="topbar-right">
+        <div class="cmdk" id="cmdkBtn" role="button" tabindex="0">
+          <svg class="i"><use href="#i-search"/></svg>
+          <span>Jump to gig, run or action…</span>
+          <kbd>⌘K</kbd>
+        </div>
+        <button class="primary sm" id="newRunBtn"><svg class="i"><use href="#i-bolt"/></svg>New run</button>
+      </div>
+    </header>
+
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<div class="drawer-host" id="drawerHost"></div>
+<div class="palette-host" id="paletteHost"></div>
+<div class="toasts" id="toasts"></div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

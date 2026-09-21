@@ -10,6 +10,43 @@ Extract Fiverr gig data for any keyword in seconds. Searches Fiverr like a buyer
 - **Features**: consultation, video intro, work samples, recurring option
 - **Gallery** (optional): all gig images + delivery work samples
 
+## 🖥️ Fiverr Gig Studio — the frontend
+
+The repo ships a premium control room for the actor: live run console, dataset explorer and
+one-click exports. No build step, no framework, zero extra dependencies.
+
+```bash
+npm run studio        # → http://localhost:4321
+```
+
+| Screen | What it does |
+|---|---|
+| **Overview** | Network probe, KPIs, price distribution and country/level breakdown of the latest dataset |
+| **New run** | Composer for every input field, quick recipes, and a live estimate of gigs / requests / cost / runtime |
+| **Run console** | Streams the run over SSE: progress ring, live log console, gigs appearing as they are parsed, price + level charts |
+| **Dataset** | Search, quick filters, sortable table or premium gig cards, detail drawer with packages, FAQ, reviews and raw JSON |
+| **Exports** | JSON · CSV · XLSX (real .xlsx, dependency-free writer) · Markdown · NDJSON |
+| **API & deploy** | Every endpoint the UI uses, the actor input schema, CLI and curl recipes, rendered readme |
+
+Runs are stored under `storage/web/` (gitignored) and the API is a thin, documentable layer:
+
+```
+POST   /api/runs                  { input } → start a run, get its id
+GET    /api/runs/:id/stream       Server-Sent Events: log · item · progress · end
+GET    /api/runs/:id/dataset      Apify-shaped dataset JSON
+GET    /api/runs/:id/export       ?format=csv|json|xlsx|md|ndjson
+POST   /api/runs/:id/cancel       abort a running job
+```
+
+**Offline-first.** If `fiverr.com` is not reachable (sandbox, CI, no proxy) the studio replays the
+bundled fixture pages in `test/` through the *exact same parser*, flags the run as `Offline sample`,
+and keeps working end to end. Because Fiverr is protected by PerimeterX, a residential proxy is
+still the reliable path for live data — set it under **New run → Advanced**: Apify proxy
+(password + group + country), a custom HTTP(S) proxy URL, or the Jina reader (`fetchVia`).
+
+`Dockerfile` ships the actor; the same image can serve the studio with
+`CMD ["npm","run","studio"]` — it honours `APIFY_CONTAINER_PORT` for Apify web-server actors.
+
 ## 🎛️ Three modes
 | `scrapeMode` | What it does | Speed |
 |---|---|---|
