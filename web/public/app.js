@@ -723,7 +723,7 @@ async function renderJobConsole(root, id) {
             ' and parsed by the real scraper code — positions, prices, sellers, ratings and ad flags all come from that genuine parse. Pagination beyond page 1 and gig-page details are deterministic replays of the same fixture, so switch to a proxy (or the Jina reader) in ',
             h('a', { href: '#/new', style: { color: 'var(--accent)' } }, 'New run → Advanced'), ' for live data.')) : null;
 
-    root.append(head, sampleNote ?? h('span'), kpiRow,
+    root.append(head, ...(sampleNote ? [sampleNote] : []), kpiRow,
         h('div', { class: 'grid c2', style: { marginTop: '18px', alignItems: 'stretch' } },
             h('div', { class: 'card pad stack' }, h('div', { class: 'row' }, h('div', { class: 'card-title' }, icon('spark'), 'Progress'), h('span', { class: 'spacer' }), progressLine), ringHost),
             h('div', { class: 'card pad stack' }, h('div', { class: 'card-title' }, icon('terminal'), 'Live log'), consoleEl)),
