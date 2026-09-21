@@ -6,6 +6,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
+    "studio": "node web/server.js",
+    "studio:port": "PORT=5173 node web/server.js",
     "test": "node test/parser.test.js"
   },
   "dependencies": {
